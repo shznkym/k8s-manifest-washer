@@ -1,6 +1,6 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
 
 @layer base {
   :root {
@@ -24,20 +24,11 @@
   }
 
   .btn-primary {
-    @apply px-8 py-4 bg-gradient-to-r from-primary-500 to-primary-600 
-           hover:from-primary-600 hover:to-primary-700 
-           text-white font-semibold rounded-xl 
-           shadow-lg hover:shadow-xl hover:shadow-primary-500/50
-           transition-all duration-300 transform hover:scale-105
-           active:scale-95;
+    @apply px-8 py-4 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl hover:shadow-primary-500/50 transition-all duration-300 transform hover:scale-105 active:scale-95;
   }
 
   .textarea-custom {
-    @apply w-full h-full p-6 bg-slate-900/50 border border-slate-700/50 
-           rounded-xl text-slate-100 font-mono text-sm
-           focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500
-           placeholder:text-slate-500 resize-none
-           transition-all duration-200;
+    @apply w-full h-full p-6 bg-slate-900/50 border border-slate-700/50 rounded-xl text-slate-100 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:border-primary-500 placeholder:text-slate-500 resize-none transition-all duration-200;
   }
 }
 
