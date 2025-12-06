@@ -123,6 +123,13 @@ export default function Home() {
                 }
             }
 
+            // Final cleanup: remove any empty metadata objects
+            for (const [key, value] of Object.entries(cleaned)) {
+                if (key === 'metadata' && typeof value === 'object' && value !== null && Object.keys(value).length === 0) {
+                    delete cleaned[key]
+                }
+            }
+
             return cleaned
         }
 
