@@ -98,10 +98,14 @@ export default function Home() {
                             continue
                         }
 
-                        // Recursively clean nested objects, but remove empty metadata
+                        // Recursively clean nested objects
                         const cleanedValue = cleanManifest(specValue)
 
                         // Skip empty metadata objects
+                        if (specKey === 'metadata' && typeof cleanedValue === 'object' && cleanedValue !== null && Object.keys(cleanedValue).length === 0) {
+                            continue
+                        }
+
                         cleanedSpec[specKey] = cleanedValue
                     }
 
