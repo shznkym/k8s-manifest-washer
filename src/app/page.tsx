@@ -36,6 +36,7 @@ export default function Home() {
                             'generation',
                             'creationTimestamp',
                             'managedFields',
+                            'finalizers', // Remove finalizers (usually auto-managed)
                         ].includes(metaKey)) {
                             continue
                         }
@@ -44,8 +45,12 @@ export default function Home() {
                         if (metaKey === 'annotations' && typeof metaValue === 'object' && metaValue !== null) {
                             const cleanedAnnotations: any = {}
                             for (const [annoKey, annoValue] of Object.entries(metaValue)) {
-                                // Skip kubectl last-applied-configuration
-                                if (annoKey === 'kubectl.kubernetes.io/last-applied-configuration') {
+                                // Skip auto-generated annotations
+                                if (
+                                    annoKey === 'kubectl.kubernetes.io/last-applied-configuration' ||
+                                    annoKey.startsWith('run.tanzu.vmware.com/') ||
+                                    annoKey.startsWith('tkg.tanzu.vmware.com/')
+                                ) {
                                     continue
                                 }
                                 cleanedAnnotations[annoKey] = annoValue
