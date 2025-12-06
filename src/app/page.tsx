@@ -102,16 +102,20 @@ export default function Home() {
                         const cleanedValue = cleanManifest(specValue)
 
                         // Skip empty metadata objects
-                        if (specKey === 'metadata' && typeof cleanedValue === 'object' && Object.keys(cleanedValue).length === 0) {
-                            continue
-                        }
-
                         cleanedSpec[specKey] = cleanedValue
                     }
 
                     cleaned[key] = cleanedSpec
                 } else {
-                    cleaned[key] = cleanManifest(value)
+                    // Recursively clean all other values
+                    const cleanedValue = cleanManifest(value)
+
+                    // Skip empty metadata objects at any level
+                    if (key === 'metadata' && typeof cleanedValue === 'object' && cleanedValue !== null && Object.keys(cleanedValue).length === 0) {
+                        continue
+                    }
+
+                    cleaned[key] = cleanedValue
                 }
             }
 
