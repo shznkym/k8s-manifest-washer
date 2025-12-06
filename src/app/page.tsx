@@ -3,11 +3,22 @@
 import { useState } from 'react'
 import yaml from 'js-yaml'
 
+// Kubernetes versions with their OpenAPI spec URLs
+const K8S_VERSIONS = [
+    { version: '1.31', label: 'v1.31 (Latest)' },
+    { version: '1.30', label: 'v1.30' },
+    { version: '1.29', label: 'v1.29' },
+    { version: '1.28', label: 'v1.28' },
+    { version: '1.27', label: 'v1.27' },
+]
+
 export default function Home() {
     const [inputYaml, setInputYaml] = useState('')
     const [outputYaml, setOutputYaml] = useState('')
     const [error, setError] = useState('')
     const [isProcessing, setIsProcessing] = useState(false)
+    const [k8sVersion, setK8sVersion] = useState('1.31')
+    const [cleaningMode, setCleaningMode] = useState<'static' | 'dynamic'>('static')
 
     const cleanManifest = (obj: any): any => {
         if (Array.isArray(obj)) {

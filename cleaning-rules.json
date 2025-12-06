@@ -1,0 +1,35 @@
+{
+    "metadata": {
+        "removeFields": [
+            "uid",
+            "resourceVersion",
+            "generation",
+            "creationTimestamp",
+            "managedFields",
+            "finalizers"
+        ],
+        "annotations": {
+            "removePrefixes": [
+                "kubectl.kubernetes.io/last-applied-configuration",
+                "run.tanzu.vmware.com/",
+                "tkg.tanzu.vmware.com/"
+            ]
+        },
+        "labels": {
+            "removePrefixes": [
+                "topology.cluster.x-k8s.io/",
+                "run.tanzu.vmware.com/",
+                "addon.addons.kubernetes.vmware.com/"
+            ]
+        }
+    },
+    "spec": {
+        "removeFields": [
+            "controlPlaneRef",
+            "infrastructureRef",
+            "controlPlaneEndpoint"
+        ]
+    },
+    "removeEmptyMetadata": true,
+    "removeStatus": true
+}
