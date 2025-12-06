@@ -59,12 +59,57 @@ export default function Home() {
                             if (Object.keys(cleanedAnnotations).length > 0) {
                                 cleanedMetadata[metaKey] = cleanedAnnotations
                             }
+                        } else if (metaKey === 'labels' && typeof metaValue === 'object' && metaValue !== null) {
+                            // Handle labels specially - remove auto-generated ones
+                            const cleanedLabels: any = {}
+                            for (const [labelKey, labelValue] of Object.entries(metaValue)) {
+                                // Skip auto-generated labels
+                                if (
+                                    labelKey.startsWith('topology.cluster.x-k8s.io/') ||
+                                    labelKey.startsWith('run.tanzu.vmware.com/') ||
+                                    labelKey.startsWith('addon.addons.kubernetes.vmware.com/')
+                                ) {
+                                    continue
+                                }
+                                cleanedLabels[labelKey] = labelValue
+                            }
+                            // Only add labels if there are any left
+                            if (Object.keys(cleanedLabels).length > 0) {
+                                cleanedMetadata[metaKey] = cleanedLabels
+                            }
                         } else {
                             cleanedMetadata[metaKey] = cleanManifest(metaValue)
                         }
                     }
 
                     cleaned[key] = cleanedMetadata
+                } else if (key === 'spec' && typeof value === 'object' && value !== null) {
+                    // Handle spec specially - remove Ref fields and controlPlaneEndpoint
+                    const cleanedSpec: any = {}
+                    const specObj = value as Record<string, any>
+
+                    for (const [specKey, specValue] of Object.entries(specObj)) {
+                        // Skip auto-generated Ref fields and controlPlaneEndpoint
+                        if ([
+                            'controlPlaneRef',
+                            'infrastructureRef',
+                            'controlPlaneEndpoint',
+                        ].includes(specKey)) {
+                            continue
+                        }
+
+                        // Recursively clean nested objects, but remove empty metadata
+                        const cleanedValue = cleanManifest(specValue)
+
+                        // Skip empty metadata objects
+                        if (specKey === 'metadata' && typeof cleanedValue === 'object' && Object.keys(cleanedValue).length === 0) {
+                            continue
+                        }
+
+                        cleanedSpec[specKey] = cleanedValue
+                    }
+
+                    cleaned[key] = cleanedSpec
                 } else {
                     cleaned[key] = cleanManifest(value)
                 }
