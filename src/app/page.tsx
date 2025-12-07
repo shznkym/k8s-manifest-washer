@@ -357,27 +357,52 @@ export default function Home() {
 
                     {/* Action */}
                     <div className="flex items-center justify-center lg:h-[600px] animate-slide-up delay-200">
-                        <button onClick={handleWash} disabled={!inputYaml || isProcessing || (cleaningMode === 'dynamic' && isLoadingSpec)} className="btn-primary whitespace-nowrap">
-                            {isProcessing ? 'Processing...' : 'Wash & Minify'}
-                        </button>
-                    </div>
-
-                    {/* Output */}
-                    <div className="glass-effect rounded-2xl p-6 h-[600px] flex flex-col animate-slide-up delay-300">
-                        <div className="flex justify-between mb-4">
-                            <h2 className="text-xl font-semibold flex items-center gap-2"><span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" /> Clean YAML</h2>
-                            {outputYaml && <button onClick={handleCopy} className="text-sm text-primary-400 hover:text-primary-300 flex items-center gap-1">Copy</button>}
-                        </div>
-                        {error ? (
-                            <div className="flex-1 flex items-center justify-center text-center">
-                                <div><div className="text-4xl mb-4">⚠️</div><p className="text-red-400">{error}</p></div>
-                            </div>
+                        {isProcessing ? (
+                            <span className="flex items-center gap-2">
+                                <svg className="animate-spin h-5 w-5" width="20" height="20" style={{ minWidth: '20px', minHeight: '20px' }} viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                </svg>
+                                Processing...
+                            </span>
                         ) : (
-                            <textarea value={outputYaml} readOnly placeholder="Clean YAML appears here..." className="textarea-custom flex-1" />
+                            <span className="flex items-center gap-2">
+                                <svg className="w-5 h-5" width="20" height="20" style={{ minWidth: '20px', minHeight: '20px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                </svg>
+                                Wash & Minify
+                            </span>
+                        )}
+                    </button>
+                </div>
+
+                {/* Output */}
+                <div className="glass-effect rounded-2xl p-6 h-[600px] flex flex-col animate-slide-up delay-300">
+                    <div className="flex justify-between mb-4">
+                        <h2 className="text-xl font-semibold flex items-center gap-2">
+                            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                            Clean YAML
+                        </h2>
+                        {outputYaml && (
+                            <button onClick={handleCopy} className="text-sm text-primary-400 hover:text-primary-300 flex items-center gap-1">
+                                <svg className="w-4 h-4" width="16" height="16" style={{ minWidth: '16px', minHeight: '16px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                </svg>
+                                Copy
+                            </button>
                         )}
                     </div>
+
+                    {error ? (
+                        <div className="flex-1 flex items-center justify-center text-center">
+                            <div><div className="text-4xl mb-4">⚠️</div><p className="text-red-400">{error}</p></div>
+                        </div>
+                    ) : (
+                        <textarea value={outputYaml} readOnly placeholder="Clean YAML appears here..." className="textarea-custom flex-1" />
+                    )}
                 </div>
             </div>
-        </main>
+        </div>
+        </main >
     )
 }
