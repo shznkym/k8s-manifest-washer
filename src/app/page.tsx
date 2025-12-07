@@ -248,89 +248,83 @@ export default function Home() {
                 </header>
 
                 {/* Controls Section */}
-                <div className="glass-effect rounded-2xl p-6 mb-10 animate-slide-up" style={{ animationDelay: '0.1s' }}>
-                    <h2 className="text-xl font-semibold text-slate-200 mb-4 flex items-center gap-2">
-                        <svg className="w-5 h-5 text-primary-400" width="20" height="20" style={{ minWidth: '20px', minHeight: '20px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="config-card">
+                    <h2 className="config-header">
+                        <svg className="text-primary-400" width="20" height="20" style={{ minWidth: '20px', minHeight: '20px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
                         </svg>
                         Configuration
                     </h2>
 
-                    <div className="flex flex-col md:flex-row gap-8">
+                    <div className="config-grid">
                         {/* Mode Selection */}
-                        <div className="flex-1">
-                            <label className="text-sm font-medium text-slate-400 mb-3 block">Cleaning Strategy</label>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <button
+                        <div className="config-col">
+                            <label className="label-text">Cleaning Strategy</label>
+                            <div className="mode-grid">
+                                <div
                                     onClick={() => setCleaningMode('static')}
-                                    className={`relative p-4 rounded-xl border-2 text-left transition-all duration-200 group ${cleaningMode === 'static'
-                                        ? 'border-primary-500 bg-primary-500/10 shadow-[0_0_20px_rgba(139,92,246,0.3)]'
-                                        : 'border-slate-700 bg-slate-800/50 hover:border-slate-600 hover:bg-slate-800'
-                                        }`}
+                                    className={`card-option ${cleaningMode === 'static' ? 'active' : ''}`}
                                 >
-                                    <div className="flex items-center justify-between mb-1">
-                                        <span className={`text-base font-bold ${cleaningMode === 'static' ? 'text-white' : 'text-slate-200'}`}>
+                                    <div className="card-option-header">
+                                        <span className={`card-title ${cleaningMode === 'static' ? 'text-white' : 'text-slate-200'}`}>
                                             Default (Static)
                                         </span>
                                         {cleaningMode === 'static' && (
-                                            <span className="flex h-3 w-3 relative">
-                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-400 opacity-75"></span>
-                                                <span className="relative inline-flex rounded-full h-3 w-3 bg-primary-500"></span>
+                                            <span className="active-indicator">
+                                                <span className="ping-animation"></span>
+                                                <span className="dot"></span>
                                             </span>
                                         )}
                                     </div>
-                                    <p className="text-xs text-slate-400 leading-relaxed">
+                                    <p className="card-desc">
                                         Fast & reliable. Removes standard identified system fields. Recommended for most cases.
                                     </p>
-                                </button>
+                                </div>
 
-                                <button
+                                <div
                                     onClick={() => setCleaningMode('dynamic')}
-                                    className={`relative p-4 rounded-xl border-2 text-left transition-all duration-200 group ${cleaningMode === 'dynamic'
-                                        ? 'border-primary-500 bg-primary-500/10 shadow-[0_0_20px_rgba(139,92,246,0.3)]'
-                                        : 'border-slate-700 bg-slate-800/50 hover:border-slate-600 hover:bg-slate-800'
-                                        }`}
+                                    className={`card-option ${cleaningMode === 'dynamic' ? 'active' : ''}`}
                                 >
-                                    <div className="flex items-center justify-between mb-1">
-                                        <span className={`text-base font-bold ${cleaningMode === 'dynamic' ? 'text-white' : 'text-slate-200'}`}>
+                                    <div className="card-option-header">
+                                        <span className={`card-title ${cleaningMode === 'dynamic' ? 'text-white' : 'text-slate-200'}`}>
                                             Dynamic (OpenAPI)
                                         </span>
                                         {cleaningMode === 'dynamic' && (
-                                            <span className="flex h-3 w-3 relative">
-                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-400 opacity-75"></span>
-                                                <span className="relative inline-flex rounded-full h-3 w-3 bg-primary-500"></span>
+                                            <span className="active-indicator">
+                                                <span className="ping-animation"></span>
+                                                <span className="dot"></span>
                                             </span>
                                         )}
                                     </div>
-                                    <p className="text-xs text-slate-400 leading-relaxed">
+                                    <p className="card-desc">
                                         Fetches official K8s OpenAPI Spec to identify system fields. More accurate for specific versions.
                                     </p>
-                                </button>
+                                </div>
                             </div>
                         </div>
 
                         {/* Version Selection (Only visible in Dynamic Mode) */}
-                        <div className={`transition-all duration-300 ${cleaningMode === 'dynamic' ? 'opacity-100 flex-1' : 'opacity-40 pointer-events-none flex-1 grayscale'}`}>
-                            <label className="text-sm font-medium text-slate-400 mb-3 block flex items-center justify-between">
-                                Target Kubernetes Version {cleaningMode !== 'dynamic' && <span className="text-xs text-slate-500">(Requires Dynamic Mode)</span>}
-                                {isLoadingSpec && <span className="text-xs text-yellow-400 animate-pulse flex items-center gap-1">⚡ Loading Spec...</span>}
-                                {!isLoadingSpec && !specError && openAPISpec && cleaningMode === 'dynamic' && <span className="text-xs text-green-400 flex items-center gap-1">✅ Spec Loaded</span>}
-                                {specError && <span className="text-xs text-red-400 flex items-center gap-1">⚠️ Error</span>}
+                        <div className={`config-col transition-opacity duration-300 ${cleaningMode === 'dynamic' ? 'opacity-100' : 'opacity-40 pointer-events-none grayscale'}`}>
+                            <label className="label-text">
+                                <span>Target Kubernetes Version {cleaningMode !== 'dynamic' && <span className="text-xs text-slate-500">(Requires Dynamic Mode)</span>}</span>
+                                {isLoadingSpec && <span className="badge-loading flex items-center gap-1">⚡ Loading Spec...</span>}
+                                {!isLoadingSpec && !specError && openAPISpec && cleaningMode === 'dynamic' && <span className="badge-success flex items-center gap-1">✅ Spec Loaded</span>}
+                                {specError && <span className="badge-error flex items-center gap-1">⚠️ Error</span>}
                             </label>
 
-                            <div className="relative">
+                            <div className="select-wrapper">
                                 <select
                                     value={k8sVersion.version}
                                     onChange={(e) => setK8sVersion(K8S_VERSIONS.find(v => v.version === e.target.value) || K8S_VERSIONS[0])}
                                     disabled={cleaningMode !== 'dynamic'}
-                                    className="w-full appearance-none bg-slate-800 border-2 border-slate-700 text-slate-200 text-sm rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 block p-4 pr-10 hover:border-slate-600 transition-colors cursor-pointer disabled:cursor-not-allowed"
+                                    className="select-custom"
                                 >
                                     {K8S_VERSIONS.map((v) => (
                                         <option key={v.version} value={v.version}>{v.label}</option>
                                     ))}
                                 </select>
-                                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">
-                                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <div className="select-icon">
+                                    <svg className="h-5 w-5" width="20" height="20" style={{ minWidth: '20px', minHeight: '20px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                                     </svg>
                                 </div>
@@ -345,64 +339,78 @@ export default function Home() {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] gap-6 items-start">
+                <div className="main-layout">
                     {/* Input */}
-                    <div className="glass-effect rounded-2xl p-6 h-[600px] flex flex-col animate-slide-up delay-100">
-                        <div className="flex justify-between mb-4">
-                            <h2 className="text-xl font-semibold flex items-center gap-2"><span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" /> Dirty YAML</h2>
-                            <button onClick={() => setInputYaml('')} className="text-sm text-slate-400 hover:text-white">Clear</button>
+                    <div className="editor-card animate-slide-up" style={{ animationDelay: '0.1s' }}>
+                        <div className="editor-header">
+                            <h2 className="editor-title">
+                                <span className="dot-pulse bg-red" />
+                                Dirty YAML
+                            </h2>
+                            <button onClick={() => setInputYaml('')} className="text-btn">Clear</button>
                         </div>
-                        <textarea value={inputYaml} onChange={e => setInputYaml(e.target.value)} placeholder="Paste dirty YAML here..." className="textarea-custom flex-1" />
+                        <textarea
+                            value={inputYaml}
+                            onChange={e => setInputYaml(e.target.value)}
+                            placeholder="Paste dirty YAML here..."
+                            className="textarea-custom flex-1"
+                        />
                     </div>
 
                     {/* Action */}
-                    <div className="flex items-center justify-center lg:h-[600px] animate-slide-up delay-200">
-                        {isProcessing ? (
-                            <span className="flex items-center gap-2">
-                                <svg className="animate-spin h-5 w-5" width="20" height="20" style={{ minWidth: '20px', minHeight: '20px' }} viewBox="0 0 24 24">
-                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                                </svg>
-                                Processing...
-                            </span>
-                        ) : (
-                            <span className="flex items-center gap-2">
-                                <svg className="w-5 h-5" width="20" height="20" style={{ minWidth: '20px', minHeight: '20px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                </svg>
-                                Wash & Minify
-                            </span>
-                        )}
-                    </button>
-                </div>
-
-                {/* Output */}
-                <div className="glass-effect rounded-2xl p-6 h-[600px] flex flex-col animate-slide-up delay-300">
-                    <div className="flex justify-between mb-4">
-                        <h2 className="text-xl font-semibold flex items-center gap-2">
-                            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                            Clean YAML
-                        </h2>
-                        {outputYaml && (
-                            <button onClick={handleCopy} className="text-sm text-primary-400 hover:text-primary-300 flex items-center gap-1">
-                                <svg className="w-4 h-4" width="16" height="16" style={{ minWidth: '16px', minHeight: '16px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                </svg>
-                                Copy
-                            </button>
-                        )}
+                    <div className="action-container">
+                        <button onClick={handleWash} disabled={!inputYaml || isProcessing || (cleaningMode === 'dynamic' && isLoadingSpec)} className="btn-primary whitespace-nowrap">
+                            {isProcessing ? (
+                                <span className="flex items-center gap-2">
+                                    <svg className="animate-spin" width="20" height="20" style={{ minWidth: '20px', minHeight: '20px' }} viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                                    </svg>
+                                    Processing...
+                                </span>
+                            ) : (
+                                <span className="flex items-center gap-2">
+                                    <svg width="20" height="20" style={{ minWidth: '20px', minHeight: '20px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                    </svg>
+                                    Wash & Minify
+                                </span>
+                            )}
+                        </button>
                     </div>
 
-                    {error ? (
-                        <div className="flex-1 flex items-center justify-center text-center">
-                            <div><div className="text-4xl mb-4">⚠️</div><p className="text-red-400">{error}</p></div>
+                    {/* Output */}
+                    <div className="editor-card animate-slide-up" style={{ animationDelay: '0.3s' }}>
+                        <div className="editor-header">
+                            <h2 className="editor-title">
+                                <span className="dot-pulse bg-green" />
+                                Clean YAML
+                            </h2>
+                            {outputYaml && (
+                                <button onClick={handleCopy} className="text-btn text-btn-primary">
+                                    <svg width="16" height="16" style={{ minWidth: '16px', minHeight: '16px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                    </svg>
+                                    Copy
+                                </button>
+                            )}
                         </div>
-                    ) : (
-                        <textarea value={outputYaml} readOnly placeholder="Clean YAML appears here..." className="textarea-custom flex-1" />
-                    )}
+                        {error ? (
+                            <div className="flex-1 flex items-center justify-center text-center">
+                                <div><div className="text-4xl mb-4">⚠️</div><p className="text-red-400">{error}</p></div>
+                            </div>
+                        ) : (
+                            <textarea
+                                value={outputYaml}
+                                readOnly
+                                placeholder="Clean YAML appears here..."
+                                className="textarea-custom flex-1"
+                            />
+                        )}
+                    </div>
                 </div>
             </div>
-        </div>
         </main >
     )
 }
+```
