@@ -248,42 +248,101 @@ export default function Home() {
                 </header>
 
                 {/* Controls Section */}
-                <div className="glass-effect rounded-xl p-4 mb-8 flex flex-wrap gap-6 items-center justify-center animate-slide-up" style={{ animationDelay: '0.05s' }}>
-                    <div className="flex items-center gap-3">
-                        <span className="text-sm font-semibold text-primary-400 uppercase tracking-wider">Cleaning Mode:</span>
-                        <div className="flex bg-slate-800 rounded-lg p-1">
-                            <button
-                                onClick={() => setCleaningMode('static')}
-                                className={`px-4 py-2 rounded-md text-sm transition-all ${cleaningMode === 'static' ? 'bg-primary-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
-                            >
-                                Default (Fast)
-                            </button>
-                            <button
-                                onClick={() => setCleaningMode('dynamic')}
-                                className={`px-4 py-2 rounded-md text-sm transition-all ${cleaningMode === 'dynamic' ? 'bg-primary-600 text-white shadow-lg' : 'text-slate-400 hover:text-white'}`}
-                            >
-                                Dynamic (K8s Spec)
-                            </button>
+                <div className="glass-effect rounded-2xl p-6 mb-10 animate-slide-up" style={{ animationDelay: '0.1s' }}>
+                    <h2 className="text-xl font-semibold text-slate-200 mb-4 flex items-center gap-2">
+                        <svg className="w-5 h-5 text-primary-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                        </svg>
+                        Configuration
+                    </h2>
+
+                    <div className="flex flex-col md:flex-row gap-8">
+                        {/* Mode Selection */}
+                        <div className="flex-1">
+                            <label className="text-sm font-medium text-slate-400 mb-3 block">Cleaning Strategy</label>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <button
+                                    onClick={() => setCleaningMode('static')}
+                                    className={`relative p-4 rounded-xl border-2 text-left transition-all duration-200 group ${cleaningMode === 'static'
+                                            ? 'border-primary-500 bg-primary-500/10 shadow-[0_0_20px_rgba(139,92,246,0.3)]'
+                                            : 'border-slate-700 bg-slate-800/50 hover:border-slate-600 hover:bg-slate-800'
+                                        }`}
+                                >
+                                    <div className="flex items-center justify-between mb-1">
+                                        <span className={`text-base font-bold ${cleaningMode === 'static' ? 'text-white' : 'text-slate-200'}`}>
+                                            Default (Static)
+                                        </span>
+                                        {cleaningMode === 'static' && (
+                                            <span className="flex h-3 w-3 relative">
+                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-400 opacity-75"></span>
+                                                <span className="relative inline-flex rounded-full h-3 w-3 bg-primary-500"></span>
+                                            </span>
+                                        )}
+                                    </div>
+                                    <p className="text-xs text-slate-400 leading-relaxed">
+                                        Fast & reliable. Removes standard identified system fields. Recommended for most cases.
+                                    </p>
+                                </button>
+
+                                <button
+                                    onClick={() => setCleaningMode('dynamic')}
+                                    className={`relative p-4 rounded-xl border-2 text-left transition-all duration-200 group ${cleaningMode === 'dynamic'
+                                            ? 'border-primary-500 bg-primary-500/10 shadow-[0_0_20px_rgba(139,92,246,0.3)]'
+                                            : 'border-slate-700 bg-slate-800/50 hover:border-slate-600 hover:bg-slate-800'
+                                        }`}
+                                >
+                                    <div className="flex items-center justify-between mb-1">
+                                        <span className={`text-base font-bold ${cleaningMode === 'dynamic' ? 'text-white' : 'text-slate-200'}`}>
+                                            Dynamic (OpenAPI)
+                                        </span>
+                                        {cleaningMode === 'dynamic' && (
+                                            <span className="flex h-3 w-3 relative">
+                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary-400 opacity-75"></span>
+                                                <span className="relative inline-flex rounded-full h-3 w-3 bg-primary-500"></span>
+                                            </span>
+                                        )}
+                                    </div>
+                                    <p className="text-xs text-slate-400 leading-relaxed">
+                                        Fetches official K8s OpenAPI Spec to identify system fields. More accurate for specific versions.
+                                    </p>
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Version Selection (Only visible in Dynamic Mode) */}
+                        <div className={`transition-all duration-300 ${cleaningMode === 'dynamic' ? 'opacity-100 flex-1' : 'opacity-40 pointer-events-none flex-1 grayscale'}`}>
+                            <label className="text-sm font-medium text-slate-400 mb-3 block flex items-center justify-between">
+                                Target Kubernetes Version {cleaningMode !== 'dynamic' && <span className="text-xs text-slate-500">(Requires Dynamic Mode)</span>}
+                                {isLoadingSpec && <span className="text-xs text-yellow-400 animate-pulse flex items-center gap-1">⚡ Loading Spec...</span>}
+                                {!isLoadingSpec && !specError && openAPISpec && cleaningMode === 'dynamic' && <span className="text-xs text-green-400 flex items-center gap-1">✅ Spec Loaded</span>}
+                                {specError && <span className="text-xs text-red-400 flex items-center gap-1">⚠️ Error</span>}
+                            </label>
+
+                            <div className="relative">
+                                <select
+                                    value={k8sVersion.version}
+                                    onChange={(e) => setK8sVersion(K8S_VERSIONS.find(v => v.version === e.target.value) || K8S_VERSIONS[0])}
+                                    disabled={cleaningMode !== 'dynamic'}
+                                    className="w-full appearance-none bg-slate-800 border-2 border-slate-700 text-slate-200 text-sm rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 block p-4 pr-10 hover:border-slate-600 transition-colors cursor-pointer disabled:cursor-not-allowed"
+                                >
+                                    {K8S_VERSIONS.map((v) => (
+                                        <option key={v.version} value={v.version}>{v.label}</option>
+                                    ))}
+                                </select>
+                                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-400">
+                                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </div>
+                            </div>
+
+                            {specError && (
+                                <p className="mt-2 text-xs text-red-400 bg-red-500/10 p-2 rounded border border-red-500/20">
+                                    {specError}
+                                </p>
+                            )}
                         </div>
                     </div>
-
-                    {cleaningMode === 'dynamic' && (
-                        <div className="flex items-center gap-3 animate-fade-in">
-                            <span className="text-sm font-semibold text-primary-400 uppercase tracking-wider">Target Version:</span>
-                            <select
-                                value={k8sVersion.version}
-                                onChange={(e) => setK8sVersion(K8S_VERSIONS.find(v => v.version === e.target.value) || K8S_VERSIONS[0])}
-                                className="bg-slate-800 border-slate-700 text-slate-200 text-sm rounded-lg focus:ring-primary-500 focus:border-primary-500 block p-2.5"
-                            >
-                                {K8S_VERSIONS.map((v) => (
-                                    <option key={v.version} value={v.version}>{v.label}</option>
-                                ))}
-                            </select>
-                            {isLoadingSpec && <span className="text-xs text-yellow-400 animate-pulse">Loading Spec...</span>}
-                            {specError && <span className="text-xs text-red-400" title={specError}>⚠️ Load Failed</span>}
-                            {!isLoadingSpec && !specError && openAPISpec && <span className="text-xs text-green-400">✅ Spec Loaded</span>}
-                        </div>
-                    )}
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] gap-6 items-start">
