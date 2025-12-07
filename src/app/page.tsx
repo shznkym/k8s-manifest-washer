@@ -204,6 +204,14 @@ export default function Home() {
         try {
             const docs = yaml.loadAll(inputYaml)
 
+            // Expand "kind: List" documents into individual resources
+            const expandedDocs = docs.flatMap((doc: any) => {
+                if (doc && typeof doc === 'object' && doc.kind === 'List' && Array.isArray(doc.items)) {
+                    return doc.items
+                }
+                return [doc]
+            })
+
             // Get system fields from spec if in dynamic mode
             let systemFields: string[] = []
             if (cleaningMode === 'dynamic' && openAPISpec) {
@@ -211,13 +219,13 @@ export default function Home() {
                 console.log('Dynamic System Fields:', systemFields)
             }
 
-            const cleanedDocs = docs.map(doc => cleanManifest(doc, systemFields))
+            const cleanedDocs = expandedDocs.map((doc: any) => cleanManifest(doc, systemFields))
 
             let result: string
             if (cleanedDocs.length === 1) {
                 result = yaml.dump(cleanedDocs[0], { indent: 2, lineWidth: -1, noRefs: true })
             } else {
-                result = cleanedDocs.map(doc => yaml.dump(doc, { indent: 2, lineWidth: -1, noRefs: true })).join('---\n')
+                result = cleanedDocs.map((doc: any) => yaml.dump(doc, { indent: 2, lineWidth: -1, noRefs: true })).join('---\n')
             }
             setOutputYaml(result)
         } catch (err) {
