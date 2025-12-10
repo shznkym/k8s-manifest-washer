@@ -82,17 +82,27 @@ export default function Home() {
         return systemFields
     }
 
-    const cleanManifest = (obj: any, systemFields: string[] = []): any => {
+    const cleanManifest = (obj: any, systemFields: string[] = [], prefix: string = ''): { cleaned: any; removed: string[] } => {
+        const removed: string[] = []
+
         if (Array.isArray(obj)) {
-            return obj.map(item => cleanManifest(item, systemFields))
+            const cleanedArray = obj.map((item, idx) => {
+                const result = cleanManifest(item, systemFields, `${prefix}[${idx}]`)
+                removed.push(...result.removed)
+                return result.cleaned
+            })
+            return { cleaned: cleanedArray, removed }
         }
 
         if (obj !== null && typeof obj === 'object') {
             const cleaned: any = {}
 
             for (const [key, value] of Object.entries(obj)) {
+                const fieldPath = prefix ? `${prefix}.${key}` : key
+
                 // Always skip status
                 if (key === 'status') {
+                    removed.push(fieldPath)
                     continue
                 }
 
@@ -103,19 +113,22 @@ export default function Home() {
 
                     // Determine fields to remove based on mode
                     const fieldsToRemove = cleaningMode === 'dynamic' && systemFields.length > 0
-                        ? [...systemFields, 'finalizers'] // Check OpenAPI fields + finalizers
+                        ? [...systemFields, 'finalizers']
                         : [
                             'uid', 'resourceVersion', 'generation', 'creationTimestamp',
                             'managedFields', 'finalizers', 'selfLink', 'ownerReferences'
                         ]
 
                     for (const [metaKey, metaValue] of Object.entries(metadataObj)) {
+                        const metaPath = `${fieldPath}.${metaKey}`
+
                         // Remove system fields
                         if (fieldsToRemove.includes(metaKey)) {
+                            removed.push(metaPath)
                             continue
                         }
 
-                        // Special handling for annotations (always apply vendor cleaning logic)
+                        // Special handling for annotations
                         if (metaKey === 'annotations' && typeof metaValue === 'object' && metaValue !== null) {
                             const cleanedAnnotations: any = {}
                             for (const [annoKey, annoValue] of Object.entries(metaValue)) {
@@ -124,6 +137,7 @@ export default function Home() {
                                     annoKey.startsWith('run.tanzu.vmware.com/') ||
                                     annoKey.startsWith('tkg.tanzu.vmware.com/')
                                 ) {
+                                    removed.push(`${metaPath}.${annoKey}`)
                                     continue
                                 }
                                 cleanedAnnotations[annoKey] = annoValue
@@ -132,7 +146,7 @@ export default function Home() {
                                 cleanedMetadata[metaKey] = cleanedAnnotations
                             }
                         }
-                        // Special handling for labels (always apply vendor cleaning logic)
+                        // Special handling for labels
                         else if (metaKey === 'labels' && typeof metaValue === 'object' && metaValue !== null) {
                             const cleanedLabels: any = {}
                             for (const [labelKey, labelValue] of Object.entries(metaValue)) {
@@ -141,6 +155,7 @@ export default function Home() {
                                     labelKey.startsWith('run.tanzu.vmware.com/') ||
                                     labelKey.startsWith('addon.addons.kubernetes.vmware.com/')
                                 ) {
+                                    removed.push(`${metaPath}.${labelKey}`)
                                     continue
                                 }
                                 cleanedLabels[labelKey] = labelValue
@@ -149,28 +164,35 @@ export default function Home() {
                                 cleanedMetadata[metaKey] = cleanedLabels
                             }
                         } else {
-                            cleanedMetadata[metaKey] = cleanManifest(metaValue, systemFields)
+                            const result = cleanManifest(metaValue, systemFields, metaPath)
+                            removed.push(...result.removed)
+                            cleanedMetadata[metaKey] = result.cleaned
                         }
                     }
                     cleaned[key] = cleanedMetadata
                 }
-                // Handle Spec (Specific CAPI/TKG cleaning rules - largely static but important)
+                // Handle Spec
                 else if (key === 'spec' && typeof value === 'object' && value !== null) {
                     const cleanedSpec: any = {}
                     const specObj = value as Record<string, any>
 
                     for (const [specKey, specValue] of Object.entries(specObj)) {
+                        const specPath = `${fieldPath}.${specKey}`
+
                         // Vendor/CAPI specific fields to remove
                         if ([
                             'controlPlaneRef',
                             'infrastructureRef',
                             'controlPlaneEndpoint',
                         ].includes(specKey)) {
+                            removed.push(specPath)
                             continue
                         }
 
                         // Recursively clean
-                        const cleanedValue = cleanManifest(specValue, systemFields)
+                        const result = cleanManifest(specValue, systemFields, specPath)
+                        removed.push(...result.removed)
+                        const cleanedValue = result.cleaned
 
                         // Remove empty metadata from recursion result
                         if (specKey === 'metadata' && typeof cleanedValue === 'object' && cleanedValue !== null && Object.keys(cleanedValue).length === 0) {
@@ -181,7 +203,9 @@ export default function Home() {
                     }
                     cleaned[key] = cleanedSpec
                 } else {
-                    const cleanedValue = cleanManifest(value, systemFields)
+                    const result = cleanManifest(value, systemFields, fieldPath)
+                    removed.push(...result.removed)
+                    const cleanedValue = result.cleaned
 
                     // Recursively remove empty metadata
                     if (key === 'metadata' && typeof cleanedValue === 'object' && cleanedValue !== null && Object.keys(cleanedValue).length === 0) {
@@ -199,9 +223,10 @@ export default function Home() {
                 }
             }
 
-            return cleaned
+            return { cleaned, removed }
         }
-        return obj
+
+        return { cleaned: obj, removed }
     }
 
     const handleWash = async () => {
@@ -265,7 +290,12 @@ export default function Home() {
                 console.log('Dynamic System Fields:', systemFields)
             }
 
-            const cleanedDocs = expandedDocs.map((doc: any) => cleanManifest(doc, systemFields))
+            const results = expandedDocs.map((doc: any) => cleanManifest(doc, systemFields))
+            const cleanedDocs = results.map(r => r.cleaned)
+            const allRemovedFields = results.flatMap(r => r.removed)
+
+            // Deduplicate removed fields
+            setRemovedFields([...new Set(allRemovedFields)])
 
             let result: string
             if (cleanedDocs.length === 1) {
