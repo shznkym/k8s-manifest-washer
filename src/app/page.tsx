@@ -33,7 +33,10 @@ export default function Home() {
 
     // Smart Clean mode state
     const [clusterUrl, setClusterUrl] = useState('')
+    const [authType, setAuthType] = useState<'token' | 'certificate'>('token')
     const [clusterToken, setClusterToken] = useState('')
+    const [clientCert, setClientCert] = useState('')
+    const [clientKey, setClientKey] = useState('')
     const [removedFields, setRemovedFields] = useState<string[]>([])
 
     // Fetch OpenAPI spec when version changes in dynamic mode
@@ -210,8 +213,14 @@ export default function Home() {
         try {
             // Smart mode: call API
             if (cleaningMode === 'smart') {
-                if (!clusterUrl || !clusterToken) {
-                    throw new Error('Cluster URL and Token are required for Smart mode')
+                if (!clusterUrl) {
+                    throw new Error('Cluster URL is required for Smart mode')
+                }
+                if (authType === 'token' && !clusterToken) {
+                    throw new Error('Bearer Token is required for Token authentication')
+                }
+                if (authType === 'certificate' && (!clientCert || !clientKey)) {
+                    throw new Error('Client Certificate and Key are required for Certificate authentication')
                 }
 
                 const response = await fetch('/api/smart-clean', {
@@ -220,7 +229,10 @@ export default function Home() {
                     body: JSON.stringify({
                         manifest: inputYaml,
                         clusterUrl,
+                        authType,
                         token: clusterToken,
+                        clientCert,
+                        clientKey,
                     }),
                 })
 
@@ -406,26 +418,91 @@ export default function Home() {
                             </label>
 
                             <div className="space-y-3">
-                                <input
-                                    type="text"
-                                    placeholder="Cluster API URL (e.g., https://10.0.20.82:6443)"
-                                    value={clusterUrl}
-                                    onChange={(e) => setClusterUrl(e.target.value)}
-                                    disabled={cleaningMode !== 'smart'}
-                                    className="input-custom w-full"
-                                />
-                                <input
-                                    type="password"
-                                    placeholder="Bearer Token"
-                                    value={clusterToken}
-                                    onChange={(e) => setClusterToken(e.target.value)}
-                                    disabled={cleaningMode !== 'smart'}
-                                    className="input-custom w-full"
-                                />
+                                {/* Cluster URL */}
+                                <div>
+                                    <input
+                                        type="text"
+                                        placeholder="Cluster API URL (e.g., https://10.0.20.82:6443)"
+                                        value={clusterUrl}
+                                        onChange={(e) => setClusterUrl(e.target.value)}
+                                        disabled={cleaningMode !== 'smart'}
+                                        className="input-custom w-full"
+                                    />
+                                    <p className="mt-1 text-xs text-slate-500">
+                                        💡 Run: <code className="bg-slate-700 px-1 rounded">kubectl config view --minify -o jsonpath=&apos;{'{.clusters[0].cluster.server}'}&apos;</code>
+                                    </p>
+                                </div>
+
+                                {/* Auth Type Selector */}
+                                <div className="select-wrapper">
+                                    <select
+                                        value={authType}
+                                        onChange={(e) => setAuthType(e.target.value as 'token' | 'certificate')}
+                                        disabled={cleaningMode !== 'smart'}
+                                        className="select-custom"
+                                    >
+                                        <option value="token">🔑 Bearer Token</option>
+                                        <option value="certificate">📜 Client Certificate</option>
+                                    </select>
+                                    <div className="select-icon">
+                                        <svg className="h-5 w-5" width="20" height="20" style={{ minWidth: '20px', minHeight: '20px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                    </div>
+                                </div>
+
+                                {/* Token Auth Fields */}
+                                {authType === 'token' && (
+                                    <div>
+                                        <input
+                                            type="password"
+                                            placeholder="Bearer Token"
+                                            value={clusterToken}
+                                            onChange={(e) => setClusterToken(e.target.value)}
+                                            disabled={cleaningMode !== 'smart'}
+                                            className="input-custom w-full"
+                                        />
+                                        <p className="mt-1 text-xs text-slate-500">
+                                            💡 Run: <code className="bg-slate-700 px-1 rounded">kubectl config view --minify -o jsonpath=&apos;{'{.users[0].user.token}'}&apos;</code>
+                                        </p>
+                                    </div>
+                                )}
+
+                                {/* Certificate Auth Fields */}
+                                {authType === 'certificate' && (
+                                    <>
+                                        <div>
+                                            <textarea
+                                                placeholder="Client Certificate (PEM format)&#10;-----BEGIN CERTIFICATE-----&#10;...&#10;-----END CERTIFICATE-----"
+                                                value={clientCert}
+                                                onChange={(e) => setClientCert(e.target.value)}
+                                                disabled={cleaningMode !== 'smart'}
+                                                className="input-custom w-full"
+                                                rows={4}
+                                            />
+                                            <p className="mt-1 text-xs text-slate-500">
+                                                💡 Run: <code className="bg-slate-700 px-1 rounded">kubectl config view --minify --raw -o jsonpath=&apos;{'{.users[0].user.client-certificate-data}'}&apos;</code> | base64 -d
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <textarea
+                                                placeholder="Client Key (PEM format)&#10;-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----"
+                                                value={clientKey}
+                                                onChange={(e) => setClientKey(e.target.value)}
+                                                disabled={cleaningMode !== 'smart'}
+                                                className="input-custom w-full"
+                                                rows={4}
+                                            />
+                                            <p className="mt-1 text-xs text-slate-500">
+                                                💡 Run: <code className="bg-slate-700 px-1 rounded">kubectl config view --minify --raw -o jsonpath=&apos;{'{.users[0].user.client-key-data}'}&apos;</code> | base64 -d
+                                            </p>
+                                        </div>
+                                    </>
+                                )}
                             </div>
 
-                            <p className="mt-2 text-xs text-slate-500">
-                                Token is sent to backend for dry-run only, not stored.
+                            <p className="mt-3 text-xs text-amber-400/80">
+                                ⚠️ Credentials are sent to backend for dry-run only, never stored.
                             </p>
                         </div>
                     </div>
@@ -451,7 +528,7 @@ export default function Home() {
 
                     {/* Action */}
                     <div className="action-container">
-                        <button onClick={handleWash} disabled={!inputYaml || isProcessing || (cleaningMode === 'dynamic' && isLoadingSpec) || (cleaningMode === 'smart' && (!clusterUrl || !clusterToken))} className="btn-primary whitespace-nowrap">
+                        <button onClick={handleWash} disabled={!inputYaml || isProcessing || (cleaningMode === 'dynamic' && isLoadingSpec) || (cleaningMode === 'smart' && (!clusterUrl || (authType === 'token' && !clusterToken) || (authType === 'certificate' && (!clientCert || !clientKey))))} className="btn-primary whitespace-nowrap">
                             {isProcessing ? (
                                 <span className="flex items-center gap-2">
                                     <svg className="animate-spin" width="20" height="20" style={{ minWidth: '20px', minHeight: '20px' }} viewBox="0 0 24 24">

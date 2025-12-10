@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import yaml from 'js-yaml'
+import https from 'https'
+
+type AuthType = 'token' | 'certificate'
 
 interface SmartCleanRequest {
     manifest: string
     clusterUrl: string
-    token: string
+    authType: AuthType
+    token?: string
+    clientCert?: string
+    clientKey?: string
 }
 
 interface CleanResult {
@@ -34,12 +40,30 @@ const SYSTEM_LABEL_PREFIXES = [
     'topology.cluster.x-k8s.io/',
 ]
 
+function createHttpsAgent(authType: AuthType, clientCert?: string, clientKey?: string): https.Agent {
+    const options: https.AgentOptions = {
+        rejectUnauthorized: false, // Skip TLS verification for self-signed certs
+    }
+
+    if (authType === 'certificate' && clientCert && clientKey) {
+        options.cert = clientCert
+        options.key = clientKey
+    }
+
+    return new https.Agent(options)
+}
+
 async function testFieldRemoval(
     manifest: any,
     clusterUrl: string,
-    token: string,
-    fieldPath: string[]
+    authType: AuthType,
+    token?: string,
+    clientCert?: string,
+    clientKey?: string,
+    fieldPath?: string[]
 ): Promise<boolean> {
+    if (!fieldPath) return false
+
     // Create a deep copy and remove the field
     const testManifest = JSON.parse(JSON.stringify(manifest))
 
@@ -80,16 +104,22 @@ async function testFieldRemoval(
     }
 
     try {
+        const headers: Record<string, string> = {
+            'Content-Type': 'application/yaml',
+        }
+
+        if (authType === 'token' && token) {
+            headers['Authorization'] = `Bearer ${token}`
+        }
+
+        const agent = createHttpsAgent(authType, clientCert, clientKey)
+
         const response = await fetch(`${clusterUrl}${apiPath}`, {
             method: 'PUT',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/yaml',
-            },
+            headers,
             body: yaml.dump(testManifest),
-            // Skip TLS verification for self-signed certs
             // @ts-ignore - Node.js specific option
-            agent: new (await import('https')).Agent({ rejectUnauthorized: false }),
+            agent,
         })
 
         if (response.ok || response.status === 200 || response.status === 201) {
@@ -130,7 +160,10 @@ function getAllFieldPaths(obj: any, prefix: string[] = []): string[][] {
 async function smartClean(
     manifest: any,
     clusterUrl: string,
-    token: string
+    authType: AuthType,
+    token?: string,
+    clientCert?: string,
+    clientKey?: string
 ): Promise<{ cleaned: any; removedFields: string[] }> {
     const removedFields: string[] = []
     const cleaned = JSON.parse(JSON.stringify(manifest))
@@ -188,8 +221,9 @@ async function smartClean(
         removedFields.push('status')
     }
 
-    // Level 3: Test spec fields with dry-run
-    if (cleaned.spec && clusterUrl && token) {
+    // Level 3: Test spec fields with dry-run (only if we have valid auth)
+    const hasValidAuth = (authType === 'token' && token) || (authType === 'certificate' && clientCert && clientKey)
+    if (cleaned.spec && clusterUrl && hasValidAuth) {
         const specFields = Object.keys(cleaned.spec)
 
         for (const field of specFields) {
@@ -198,7 +232,7 @@ async function smartClean(
                 continue
             }
 
-            const canRemove = await testFieldRemoval(cleaned, clusterUrl, token, ['spec', field])
+            const canRemove = await testFieldRemoval(cleaned, clusterUrl, authType, token, clientCert, clientKey, ['spec', field])
             if (canRemove) {
                 delete cleaned.spec[field]
                 removedFields.push(`spec.${field}`)
@@ -220,6 +254,9 @@ export async function POST(request: NextRequest) {
             )
         }
 
+        // Default authType to 'token' if not specified
+        const authType: AuthType = (body.authType === 'certificate' ? 'certificate' : 'token')
+
         // Parse YAML (handle multi-document)
         const docs = yaml.loadAll(body.manifest)
 
@@ -234,7 +271,10 @@ export async function POST(request: NextRequest) {
                 const { cleaned, removedFields } = await smartClean(
                     doc,
                     body.clusterUrl,
-                    body.token
+                    authType,
+                    body.token,
+                    body.clientCert,
+                    body.clientKey
                 )
                 results.push(cleaned)
                 allRemovedFields.push(...removedFields)
