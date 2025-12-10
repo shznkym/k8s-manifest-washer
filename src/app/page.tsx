@@ -12,7 +12,7 @@ const K8S_VERSIONS = [
     { version: '1.27', label: 'v1.27', url: 'https://raw.githubusercontent.com/kubernetes/kubernetes/v1.27.0/api/openapi-spec/swagger.json' },
 ]
 
-type CleaningMode = 'static' | 'dynamic'
+type CleaningMode = 'static' | 'dynamic' | 'smart'
 
 interface OpenAPIDefinition {
     properties?: Record<string, any>
@@ -30,6 +30,11 @@ export default function Home() {
     const [openAPISpec, setOpenAPISpec] = useState<any>(null)
     const [isLoadingSpec, setIsLoadingSpec] = useState(false)
     const [specError, setSpecError] = useState('')
+
+    // Smart Clean mode state
+    const [clusterUrl, setClusterUrl] = useState('')
+    const [clusterToken, setClusterToken] = useState('')
+    const [removedFields, setRemovedFields] = useState<string[]>([])
 
     // Fetch OpenAPI spec when version changes in dynamic mode
     useEffect(() => {
@@ -196,12 +201,41 @@ export default function Home() {
         return obj
     }
 
-    const handleWash = () => {
+    const handleWash = async () => {
         setIsProcessing(true)
         setError('')
         setOutputYaml('')
+        setRemovedFields([])
 
         try {
+            // Smart mode: call API
+            if (cleaningMode === 'smart') {
+                if (!clusterUrl || !clusterToken) {
+                    throw new Error('Cluster URL and Token are required for Smart mode')
+                }
+
+                const response = await fetch('/api/smart-clean', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        manifest: inputYaml,
+                        clusterUrl,
+                        token: clusterToken,
+                    }),
+                })
+
+                const data = await response.json()
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Smart clean failed')
+                }
+
+                setOutputYaml(data.cleanedManifest)
+                setRemovedFields(data.removedFields || [])
+                return
+            }
+
+            // Static/Dynamic mode: existing logic
             const docs = yaml.loadAll(inputYaml)
 
             // Expand "kind: List" documents into individual resources
@@ -308,6 +342,26 @@ export default function Home() {
                                         Fetches official K8s OpenAPI Spec to identify system fields. More accurate for specific versions.
                                     </p>
                                 </div>
+
+                                <div
+                                    onClick={() => setCleaningMode('smart')}
+                                    className={`card-option ${cleaningMode === 'smart' ? 'active' : ''}`}
+                                >
+                                    <div className="card-option-header">
+                                        <span className={`card-title ${cleaningMode === 'smart' ? 'text-white' : 'text-slate-200'}`}>
+                                            🎯 Smart (Cluster)
+                                        </span>
+                                        {cleaningMode === 'smart' && (
+                                            <span className="active-indicator">
+                                                <span className="ping-animation"></span>
+                                                <span className="dot"></span>
+                                            </span>
+                                        )}
+                                    </div>
+                                    <p className="card-desc">
+                                        Connects to your cluster and uses dry-run to detect removable fields. Most accurate.
+                                    </p>
+                                </div>
                             </div>
                         </div>
 
@@ -344,6 +398,36 @@ export default function Home() {
                                 </p>
                             )}
                         </div>
+
+                        {/* Cluster Connection (Only visible in Smart Mode) */}
+                        <div className={`config-col transition-opacity duration-300 ${cleaningMode === 'smart' ? 'opacity-100' : 'opacity-40 pointer-events-none grayscale'}`}>
+                            <label className="label-text">
+                                <span>Cluster Connection {cleaningMode !== 'smart' && <span className="text-xs text-slate-500">(Requires Smart Mode)</span>}</span>
+                            </label>
+
+                            <div className="space-y-3">
+                                <input
+                                    type="text"
+                                    placeholder="Cluster API URL (e.g., https://10.0.20.82:6443)"
+                                    value={clusterUrl}
+                                    onChange={(e) => setClusterUrl(e.target.value)}
+                                    disabled={cleaningMode !== 'smart'}
+                                    className="input-custom w-full"
+                                />
+                                <input
+                                    type="password"
+                                    placeholder="Bearer Token"
+                                    value={clusterToken}
+                                    onChange={(e) => setClusterToken(e.target.value)}
+                                    disabled={cleaningMode !== 'smart'}
+                                    className="input-custom w-full"
+                                />
+                            </div>
+
+                            <p className="mt-2 text-xs text-slate-500">
+                                Token is sent to backend for dry-run only, not stored.
+                            </p>
+                        </div>
                     </div>
                 </div>
 
@@ -367,7 +451,7 @@ export default function Home() {
 
                     {/* Action */}
                     <div className="action-container">
-                        <button onClick={handleWash} disabled={!inputYaml || isProcessing || (cleaningMode === 'dynamic' && isLoadingSpec)} className="btn-primary whitespace-nowrap">
+                        <button onClick={handleWash} disabled={!inputYaml || isProcessing || (cleaningMode === 'dynamic' && isLoadingSpec) || (cleaningMode === 'smart' && (!clusterUrl || !clusterToken))} className="btn-primary whitespace-nowrap">
                             {isProcessing ? (
                                 <span className="flex items-center gap-2">
                                     <svg className="animate-spin" width="20" height="20" style={{ minWidth: '20px', minHeight: '20px' }} viewBox="0 0 24 24">
@@ -414,6 +498,22 @@ export default function Home() {
                                 placeholder="Clean YAML appears here..."
                                 className="textarea-custom flex-1"
                             />
+                        )}
+
+                        {/* Removed Fields Display (Smart mode) */}
+                        {removedFields.length > 0 && (
+                            <div className="mt-4 p-3 bg-green-500/10 rounded-lg border border-green-500/20">
+                                <h3 className="text-sm font-semibold text-green-400 mb-2">
+                                    ✅ Removed {removedFields.length} fields:
+                                </h3>
+                                <div className="flex flex-wrap gap-1">
+                                    {removedFields.map((field, idx) => (
+                                        <span key={idx} className="text-xs px-2 py-1 bg-green-500/20 text-green-300 rounded">
+                                            {field}
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
                         )}
                     </div>
                 </div>
