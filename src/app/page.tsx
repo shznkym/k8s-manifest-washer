@@ -463,7 +463,7 @@ export default function Home() {
                                             className="input-custom w-full"
                                         />
                                         <p className="mt-1 text-xs text-slate-500">
-                                            💡 Run: <code className="bg-slate-700 px-1 rounded">kubectl config view --minify -o jsonpath=&apos;{'{.users[0].user.token}'}&apos;</code>
+                                            💡 Run: <code className="bg-slate-700 px-1 rounded">kubectl config view --minify --raw -o jsonpath=&apos;{'{.users[0].user.token}'}&apos;</code>
                                         </p>
                                     </div>
                                 )}
@@ -524,6 +524,9 @@ export default function Home() {
                             placeholder="Paste dirty YAML here..."
                             className="textarea-custom flex-1"
                         />
+                        <p className="mt-2 text-xs text-slate-500">
+                            💡 Get from cluster: <code className="bg-slate-700 px-1 rounded">kubectl get &lt;resource&gt; &lt;name&gt; -n &lt;namespace&gt; -o yaml</code>
+                        </p>
                     </div>
 
                     {/* Action */}
