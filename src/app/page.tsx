@@ -618,21 +618,25 @@ export default function Home() {
 
                         {/* Removed Fields Display */}
                         {removedFields.length > 0 && (
-                            <div className="mt-4 p-3 bg-green-500/10 rounded-lg border border-green-500/20 max-h-48 overflow-y-auto">
-                                <h3 className="text-sm font-semibold text-green-400 mb-2">
+                            <div className="mt-4 p-3 bg-green-500/10 rounded-lg border border-green-500/20" style={{ maxHeight: '200px', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                                <h3 className="text-sm font-semibold text-green-400 mb-2 shrink-0">
                                     ✅ Removed {removedFields.length} fields:
                                 </h3>
-                                <div className="space-y-1">
-                                    {removedFields.map((item, idx) => (
-                                        <div key={idx} className="text-xs flex items-start gap-2">
-                                            <code className="px-2 py-1 bg-green-500/20 text-green-300 rounded shrink-0">
-                                                {item.field}
-                                            </code>
-                                            <span className="text-slate-400 pt-1">
-                                                {item.reason}
-                                            </span>
-                                        </div>
-                                    ))}
+                                <div style={{ overflowY: 'auto', flex: 1 }}>
+                                    <table className="w-full text-xs">
+                                        <tbody>
+                                            {removedFields.map((item, idx) => (
+                                                <tr key={idx} className="border-b border-green-500/10 last:border-b-0">
+                                                    <td className="py-1 pr-3 text-green-300 font-mono whitespace-nowrap">
+                                                        {item.field}
+                                                    </td>
+                                                    <td className="py-1 text-slate-400">
+                                                        {item.reason}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
                         )}
