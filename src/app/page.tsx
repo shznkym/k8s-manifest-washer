@@ -37,7 +37,7 @@ export default function Home() {
     const [clusterToken, setClusterToken] = useState('')
     const [clientCert, setClientCert] = useState('')
     const [clientKey, setClientKey] = useState('')
-    const [removedFields, setRemovedFields] = useState<string[]>([])
+    const [removedFields, setRemovedFields] = useState<{ field: string; reason: string }[]>([])
 
     // Fetch OpenAPI spec when version changes in dynamic mode
     useEffect(() => {
@@ -82,8 +82,10 @@ export default function Home() {
         return systemFields
     }
 
-    const cleanManifest = (obj: any, systemFields: string[] = [], prefix: string = ''): { cleaned: any; removed: string[] } => {
-        const removed: string[] = []
+    type RemovedField = { field: string; reason: string }
+
+    const cleanManifest = (obj: any, systemFields: string[] = [], prefix: string = ''): { cleaned: any; removed: RemovedField[] } => {
+        const removed: RemovedField[] = []
 
         if (Array.isArray(obj)) {
             const cleanedArray = obj.map((item, idx) => {
@@ -102,7 +104,7 @@ export default function Home() {
 
                 // Always skip status
                 if (key === 'status') {
-                    removed.push(fieldPath)
+                    removed.push({ field: fieldPath, reason: 'Runtime status (auto-generated)' })
                     continue
                 }
 
@@ -124,7 +126,7 @@ export default function Home() {
 
                         // Remove system fields
                         if (fieldsToRemove.includes(metaKey)) {
-                            removed.push(metaPath)
+                            removed.push({ field: metaPath, reason: 'System-generated field' })
                             continue
                         }
 
@@ -132,12 +134,12 @@ export default function Home() {
                         if (metaKey === 'annotations' && typeof metaValue === 'object' && metaValue !== null) {
                             const cleanedAnnotations: any = {}
                             for (const [annoKey, annoValue] of Object.entries(metaValue)) {
-                                if (
-                                    annoKey === 'kubectl.kubernetes.io/last-applied-configuration' ||
-                                    annoKey.startsWith('run.tanzu.vmware.com/') ||
-                                    annoKey.startsWith('tkg.tanzu.vmware.com/')
-                                ) {
-                                    removed.push(`${metaPath}.${annoKey}`)
+                                if (annoKey === 'kubectl.kubernetes.io/last-applied-configuration') {
+                                    removed.push({ field: `${metaPath}.${annoKey}`, reason: 'kubectl auto-generated' })
+                                    continue
+                                }
+                                if (annoKey.startsWith('run.tanzu.vmware.com/') || annoKey.startsWith('tkg.tanzu.vmware.com/')) {
+                                    removed.push({ field: `${metaPath}.${annoKey}`, reason: 'VMware/Tanzu vendor annotation' })
                                     continue
                                 }
                                 cleanedAnnotations[annoKey] = annoValue
@@ -150,12 +152,12 @@ export default function Home() {
                         else if (metaKey === 'labels' && typeof metaValue === 'object' && metaValue !== null) {
                             const cleanedLabels: any = {}
                             for (const [labelKey, labelValue] of Object.entries(metaValue)) {
-                                if (
-                                    labelKey.startsWith('topology.cluster.x-k8s.io/') ||
-                                    labelKey.startsWith('run.tanzu.vmware.com/') ||
-                                    labelKey.startsWith('addon.addons.kubernetes.vmware.com/')
-                                ) {
-                                    removed.push(`${metaPath}.${labelKey}`)
+                                if (labelKey.startsWith('topology.cluster.x-k8s.io/')) {
+                                    removed.push({ field: `${metaPath}.${labelKey}`, reason: 'Cluster API topology label' })
+                                    continue
+                                }
+                                if (labelKey.startsWith('run.tanzu.vmware.com/') || labelKey.startsWith('addon.addons.kubernetes.vmware.com/')) {
+                                    removed.push({ field: `${metaPath}.${labelKey}`, reason: 'VMware/Tanzu vendor label' })
                                     continue
                                 }
                                 cleanedLabels[labelKey] = labelValue
@@ -180,12 +182,8 @@ export default function Home() {
                         const specPath = `${fieldPath}.${specKey}`
 
                         // Vendor/CAPI specific fields to remove
-                        if ([
-                            'controlPlaneRef',
-                            'infrastructureRef',
-                            'controlPlaneEndpoint',
-                        ].includes(specKey)) {
-                            removed.push(specPath)
+                        if (['controlPlaneRef', 'infrastructureRef', 'controlPlaneEndpoint'].includes(specKey)) {
+                            removed.push({ field: specPath, reason: 'Cluster API auto-generated reference' })
                             continue
                         }
 
@@ -268,7 +266,12 @@ export default function Home() {
                 }
 
                 setOutputYaml(data.cleanedManifest)
-                setRemovedFields(data.removedFields || [])
+                // API returns string[], convert to object format
+                const apiRemovedFields = (data.removedFields || []).map((f: string) => ({
+                    field: f,
+                    reason: 'Smart Clean (dry-run verified)'
+                }))
+                setRemovedFields(apiRemovedFields)
                 return
             }
 
@@ -294,8 +297,11 @@ export default function Home() {
             const cleanedDocs = results.map(r => r.cleaned)
             const allRemovedFields = results.flatMap(r => r.removed)
 
-            // Deduplicate removed fields
-            setRemovedFields([...new Set(allRemovedFields)])
+            // Deduplicate removed fields by field name
+            const deduped = allRemovedFields.filter((item, index, self) =>
+                index === self.findIndex(t => t.field === item.field)
+            )
+            setRemovedFields(deduped)
 
             let result: string
             if (cleanedDocs.length === 1) {
@@ -610,17 +616,22 @@ export default function Home() {
                             />
                         )}
 
-                        {/* Removed Fields Display (Smart mode) */}
+                        {/* Removed Fields Display */}
                         {removedFields.length > 0 && (
-                            <div className="mt-4 p-3 bg-green-500/10 rounded-lg border border-green-500/20">
+                            <div className="mt-4 p-3 bg-green-500/10 rounded-lg border border-green-500/20 max-h-48 overflow-y-auto">
                                 <h3 className="text-sm font-semibold text-green-400 mb-2">
                                     ✅ Removed {removedFields.length} fields:
                                 </h3>
-                                <div className="flex flex-wrap gap-1">
-                                    {removedFields.map((field, idx) => (
-                                        <span key={idx} className="text-xs px-2 py-1 bg-green-500/20 text-green-300 rounded">
-                                            {field}
-                                        </span>
+                                <div className="space-y-1">
+                                    {removedFields.map((item, idx) => (
+                                        <div key={idx} className="text-xs flex items-start gap-2">
+                                            <code className="px-2 py-1 bg-green-500/20 text-green-300 rounded shrink-0">
+                                                {item.field}
+                                            </code>
+                                            <span className="text-slate-400 pt-1">
+                                                {item.reason}
+                                            </span>
+                                        </div>
                                     ))}
                                 </div>
                             </div>
