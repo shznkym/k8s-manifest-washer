@@ -227,6 +227,10 @@ body {
   margin-top: 0.75rem;
 }
 
+.space-y-1>*+* {
+  margin-top: 0.25rem;
+}
+
 /* Main Layout (Editor) */
 .main-layout {
   display: grid;
